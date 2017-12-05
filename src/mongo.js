@@ -1,31 +1,32 @@
 const { MongoClient } = require('mongodb');
 const { format } = require('util');
-const { ObjectId } = require('mongodb');
 const moment = require('moment');
 const auth = require('../auth/mongo.json');
 
-const url = format('mongodb://%s:%s@localhost:27017/leadDB?authMechanism=%s', ...auth);
+const url = format('mongodb://%s:%s@localhost:27017/leadDB?authMechanism=%s', auth.user, auth.password, auth.authMechanism);
 
-exports.getDBData = (startdate, enddate, program) => {
+exports.getDBData = (program, cb) => {
+  const today = moment().startOf('day');
+  const lastWeek = moment(today).subtract(7, 'days');
+
   MongoClient.connect(url, (err, database) => {
     if (err) {
-      return console.log(err);
+      return err;
     }
     const db = database;
     const collection = db.collection('leads');
     const query = {
       db_entered: {
-        $gte: new Date(startdate),
-        $lt: new Date(enddate),
+        $gte: lastWeek.toDate(),
+        $lt: today.toDate(),
       },
       'programs.program': program,
     };
-    return collection.find(query).toArray((error, items) => {
+    return collection.find({ query }).toArray((error, items) => {
       if (error) {
-        return console.log(err);
+        return error;
       }
-      console.log(items);
-      return items;
+      return cb(items);
     });
   });
 };
