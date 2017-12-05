@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 const { format } = require('util');
 const moment = require('moment');
-const auth = require('../auth/mongo.json');
+const auth = require('../config/mongo.json');
 
 const url = format(auth.url, auth.user, auth.password, auth.authMechanism);
 

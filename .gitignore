@@ -15,5 +15,5 @@ results
 
 node_modules
 npm-debug.log
-auth
+config
 dist

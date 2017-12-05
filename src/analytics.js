@@ -1,7 +1,7 @@
 const HttpsProxyAgent = require('https-proxy-agent');
 const google = require('googleapis');
-const key = require('../auth/nodeAnalytics-b11967f9e384.json');
-const programs = require('../auth/program_mapping.json');
+const key = require('../config/nodeAnalytics-b11967f9e384.json');
+const programs = require('../config/program_mapping.json');
 
 const proxy = 'http://proxy.whu.edu:3128';
 const agent = new HttpsProxyAgent(proxy);
