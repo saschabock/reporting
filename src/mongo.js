@@ -3,7 +3,7 @@ const { format } = require('util');
 const moment = require('moment');
 const auth = require('../auth/mongo.json');
 
-const url = format('mongodb://%s:%s@localhost:27017/leadDB?authMechanism=%s', auth.user, auth.password, auth.authMechanism);
+const url = format(auth.url, auth.user, auth.password, auth.authMechanism);
 
 exports.getDBData = (program, cb) => {
   const today = moment().startOf('day');
