@@ -8,9 +8,10 @@ const bodyParser = require('body-parser');
 const analytics = require('./src/analytics');
 const db = require('./src/mongo');
 const ex = require('./src/excel');
+const loc = require('./config/locations.json');
 
-const privateKey = fs.readFileSync('sslcert/whu_wildcard2017.key', 'utf8');
-const certificate = fs.readFileSync('sslcert/whu_wildcard2017.cer', 'utf8');
+const privateKey = fs.readFileSync(loc.ssl.key, 'utf8');
+const certificate = fs.readFileSync(loc.ssl.cert, 'utf8');
 
 const credentials = { key: privateKey, cert: certificate };
 const app = express();
