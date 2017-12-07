@@ -3,6 +3,7 @@ const google = require('googleapis');
 const key = require('../config/nodeAnalytics-b11967f9e384.json');
 const programs = require('../config/program_mapping.json');
 const moment = require('moment');
+const when = require('when');
 
 const proxy = 'http://proxy.whu.edu:3128';
 const agent = new HttpsProxyAgent(proxy);
@@ -17,24 +18,26 @@ const jwtClient = new google.auth.JWT(
 );
 
 // Return the page titles from program mapping object
-const matchProgram = (program) => {
-  let pagetitles = [];
+const matchProgram = (program, ikey) => {
+  const id = {};
   for (let x = 0; x < programs.length; x += 1) {
     if (programs[x].id === program) {
-      ({ pagetitles } = programs[x]);
+      id[ikey] = programs[x][ikey];
     }
   }
-  return pagetitles;
+  return id[ikey];
 };
 
 // Extract relevant data from query results
-const extractProgramData = (data, program, cb) => {
-  const match = matchProgram(program);
-  let result = 0;
+const extractProgramData = (data, program, ikey, cb) => {
+  const match = matchProgram(program, ikey);
+  const result = {};
   for (let x = 0; x < data.rows.length; x += 1) {
     for (let y = 0; y < match.length; y += 1) {
       if (data.rows[x][0] === match[y]) {
-        result += Number(data.rows[x][1]);
+        for (let k = 1; k < data.rows[x].length; k += 1) {
+          result[`metric${k}`] = Number(data.rows[x][k]);
+        }
       }
     }
   }
@@ -42,32 +45,68 @@ const extractProgramData = (data, program, cb) => {
 };
 
 // Define Query to Analytics
-const queryData = (analytics, program, startdate, enddate, cb) => {
+const queryData = (analytics, program, dates, config, cb) => {
   analytics.data.ga.get({
     auth: jwtClient,
     ids: VIEW_ID,
-    metrics: 'ga:pageviews',
-    dimensions: 'ga:pageTitle',
-    'start-date': moment(startdate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
-    'end-date': moment(enddate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
-    sort: '-ga:pageviews',
+    metrics: config.metrics,
+    dimensions: config.dimensions,
+    'start-date': moment(dates.startdate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
+    'end-date': moment(dates.enddate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
+    sort: config.skey,
     maxresults: 100,
   }, (err, response) => {
     if (err) {
       return err;
     }
-    return extractProgramData(response, program, cb);
+    return extractProgramData(response, program, config.ikey, cb);
   });
 };
 
 // Export function that invoces authorization and performs the query
 exports.getData = (program, startdate, enddate, cb) => {
+  const response = {};
   google.options({ proxy, agent });
+  const config = {
+    pageData: {
+      metrics: 'ga:pageviews, ga:avgTimeOnPage',
+      dimensions: 'ga:pageTitle',
+      skey: '-ga:pageviews',
+      ikey: 'pagetitles',
+    },
+    adWordData: {
+      metrics: 'ga:impressions, ga:adClicks',
+      dimensions: 'ga:adDestinationUrl',
+      skey: '-ga:adClicks',
+      ikey: 'urls',
+    },
+  };
+  const dates = {
+    startdate,
+    enddate,
+  };
   jwtClient.authorize((err) => {
     if (err) {
       return err;
     }
     const analytics = google.analytics('v3');
-    return queryData(analytics, program, startdate, enddate, cb);
+    const pageData = when.promise((resolve) => {
+      queryData(analytics, program, dates, config.pageData, (result) => {
+        resolve(result);
+      });
+    })
+      .then((val) => {
+        response.pageDate = val;
+      });
+    const adWordData = when.promise((resolve) => {
+      queryData(analytics, program, dates, config.adWordData, (result) => {
+        resolve(result);
+      });
+    })
+      .then((val) => {
+        response.adWordData = val;
+      });
+    return when.all([pageData, adWordData])
+      .then(() => { cb(response); });
   });
 };

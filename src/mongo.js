@@ -30,6 +30,7 @@ exports.getDBData = (program, startdate, enddate, cb) => {
         name: item.personal_info.name,
         first_name: item.personal_info.first_name,
         email: item.personal_info.email,
+        received: moment(item.db_entered).format('DD.MM.YYYY HH:mm'),
       }));
       return cb(result);
     });
