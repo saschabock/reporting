@@ -5,9 +5,9 @@ const auth = require('../config/mongo.json');
 
 const url = format(auth.url, auth.user, auth.password, auth.authMechanism);
 
-exports.getDBData = (program, cb) => {
-  const today = moment().startOf('day');
-  const lastWeek = moment(today).subtract(7, 'days');
+exports.getDBData = (program, startdate, enddate, cb) => {
+  const sdate = moment(startdate, 'YYYY-MM-DD').startOf('day');
+  const edate = moment(enddate, 'YYYY-MM-DD').startOf('day');
 
   MongoClient.connect(url, (err, database) => {
     if (err) {
@@ -17,8 +17,8 @@ exports.getDBData = (program, cb) => {
     const collection = db.collection('leads');
     const query = {
       db_entered: {
-        $gte: lastWeek.toDate(),
-        $lt: today.toDate(),
+        $gte: sdate.toDate(),
+        $lt: edate.toDate(),
       },
       'programs.program': program,
     };
@@ -26,7 +26,12 @@ exports.getDBData = (program, cb) => {
       if (error) {
         return error;
       }
-      return cb(items);
+      const result = items.map(item => ({
+        name: item.personal_info.name,
+        first_name: item.personal_info.first_name,
+        email: item.personal_info.email,
+      }));
+      return cb(result);
     });
   });
 };

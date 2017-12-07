@@ -2,6 +2,7 @@ const HttpsProxyAgent = require('https-proxy-agent');
 const google = require('googleapis');
 const key = require('../config/nodeAnalytics-b11967f9e384.json');
 const programs = require('../config/program_mapping.json');
+const moment = require('moment');
 
 const proxy = 'http://proxy.whu.edu:3128';
 const agent = new HttpsProxyAgent(proxy);
@@ -41,14 +42,14 @@ const extractProgramData = (data, program, cb) => {
 };
 
 // Define Query to Analytics
-const queryData = (analytics, program, cb) => {
+const queryData = (analytics, program, startdate, enddate, cb) => {
   analytics.data.ga.get({
     auth: jwtClient,
     ids: VIEW_ID,
     metrics: 'ga:pageviews',
     dimensions: 'ga:pageTitle',
-    'start-date': '7daysAgo',
-    'end-date': 'yesterday',
+    'start-date': moment(startdate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
+    'end-date': moment(enddate, 'YYYY-MM-DD').format('YYYY-MM-DD'),
     sort: '-ga:pageviews',
     maxresults: 100,
   }, (err, response) => {
@@ -60,13 +61,13 @@ const queryData = (analytics, program, cb) => {
 };
 
 // Export function that invoces authorization and performs the query
-exports.getData = (program, cb) => {
+exports.getData = (program, startdate, enddate, cb) => {
   google.options({ proxy, agent });
   jwtClient.authorize((err) => {
     if (err) {
       return err;
     }
     const analytics = google.analytics('v3');
-    return queryData(analytics, program, cb);
+    return queryData(analytics, program, startdate, enddate, cb);
   });
 };
