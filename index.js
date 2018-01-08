@@ -4,11 +4,14 @@ const https = require('https');
 const express = require('express');
 const when = require('when');
 const bodyParser = require('body-parser');
+const _ = require('lodash');
+const cors = require('cors');
 
 const analytics = require('./src/analytics');
 const db = require('./src/mongo');
 const ex = require('./src/excel');
 const loc = require('./config/locations.json');
+const programs = require('./config/program_mapping.json');
 
 const privateKey = fs.readFileSync(loc.ssl.key, 'utf8');
 const certificate = fs.readFileSync(loc.ssl.cert, 'utf8');
@@ -57,24 +60,30 @@ const getReport = (program, run, startdate, enddate, cb) => {
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cors());
 
 app.get('/', (req, res) => {
   res.send('Welcome to the reporting API');
 });
 app.post('/reporting', (req, res) => {
-  console.log(req.body);
   const {
     program,
     run,
     startdate,
     enddate,
+    secret,
   } = req.body;
-  getReport(program, run, startdate, enddate, (result) => {
-    res.send(result);
-  });
+  const list = _.keyBy(programs, 'id');
+  if (secret === list[program].secret || secret === loc.master_secret) {
+    getReport(program, run, startdate, enddate, (result) => {
+      res.send(result);
+    });
+  } else {
+    res.status(401).send({ error: 'The request has not been applied because it lacks valid authentication credentials for the target resource.' });
+  }
 });
 
 // httpServer.listen(1234);
-httpsServer.listen(1234, () => {
+httpsServer.listen(1235, () => {
   console.log('Listening on https');
 });
