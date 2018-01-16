@@ -4,6 +4,7 @@ const moment = require('moment');
 const auth = require('../config/mongo.json');
 
 const url = format(auth.url, auth.user, auth.password, auth.authMechanism);
+const domain = /@((([^.]+)\.)+)([a-zA-Z]{3,}|[a-zA-Z.]{5,})/;
 
 exports.getDBData = (program, startdate, enddate, cb) => {
   const sdate = moment(startdate, 'YYYY-MM-DD').startOf('day');
@@ -29,9 +30,10 @@ exports.getDBData = (program, startdate, enddate, cb) => {
       const result = items.map(item => ({
         name: item.personal_info.name,
         first_name: item.personal_info.first_name,
-        email: item.personal_info.email,
+        email: item.personal_info.email.replace(/.*@/, '***@'),
         received: moment(item.db_entered).format('DD.MM.YYYY HH:mm'),
       }));
+      console.log(result);
       return cb(result);
     });
   });
